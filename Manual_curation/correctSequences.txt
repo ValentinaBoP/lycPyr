@@ -1,0 +1,44 @@
+# Valentina Peona, 14 November 2018
+# finalizing the genome
+
+# modified the chromosomes according to /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/1.ManualCuration/Data/chr2modify.contigs (from manual curation of the alignments: Excel file Gaps_spreadsheet.xlsx in C:\Users\valpe113\Dropbox\Lycocorax\lycPyr_manual_curation\07Aug
+Rscript --vanilla InvertFastaMain_v4.R
+
+# output placed in /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/1.ManualCuration/Intermediate/
+# the output consists of the single modified chromosomes
+
+# put the new chromosomes together with the unmodified chromosomes and remaining scaffolds/contigs
+
+# take all the chromosomes that have not been modified from /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/4.PhaseGenomics_scaffold/38_Scaffolds_default/lycPyr4.1_OnlyChr_v2.fasta
+# create list of all the chromosome names in R
+$ R
+chr = paste("PGA_scaffold", 0:37, sep = "")
+write.table(chr, file = "../Intermediate/all_chr.txt", quote = F, row.names = F, col.names = F)
+
+# exit R
+cd /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/1.ManualCuration/Intermediate
+cat all_chr.txt | sort -u > all_chr_sorted.txt
+comm -23 all_chr_sorted.txt modified_chr.txt > unmodified_chr.txt
+
+perl /proj/sllstore2017073/private/scripts/extractFromFasta.pl /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/1.ManualCuration/Data/lycPyr4.1_OnlyChr.fasta list /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/1.ManualCuration/Intermediate/unmodified_chr.txt > /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/1.ManualCuration/Intermediate/unmodified_chr.fasta
+
+# add the remaning scaffolds/contigs to it
+# list of all sequences minus the chromosomes, get all the names -v PGA
+GENOME=/home/vpeona/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/4.PhaseGenomics_scaffold/38_Scaffolds_default/PGA_assembly.fasta
+grep '>' $GENOME | grep -v 'PGA' | cut cut -c 2- > other_sequences.txt
+
+# extract the rest of the sequences
+perl /proj/sllstore2017073/private/scripts/extractFromFasta.pl $GENOME list other_sequences.txt > /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/1.ManualCuration/Intermediate/other_sequences.fasta
+
+# merge everything together and put the final fasta file in Results with the name lycPyr5.fasta
+cat PGA*.fasta unmodified_chr.fasta other_sequences.fasta > ../Results/lycPyr5.fasta
+
+# ready for gap filling!
+
+
+## add missing contigs
+perl /proj/sllstore2017073/private/scripts/extractFromFasta.pl /proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/2.Illumina_polished/lycPyr2.2.1.fasta list ../Data/Missing_Contigs.txt > ../Intermediate/Missing_contigs.fasta
+cd ../Results
+cat lycPyr5.fasta ../Intermediate/Missing_contigs.fasta > lycPyr5.1.fasta
+
+# ready to gap filling
