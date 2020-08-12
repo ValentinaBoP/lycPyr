@@ -1,0 +1,32 @@
+<jellyProtocol>
+    <reference>/proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/2.GapFilling/Data/lycPyr5.1.fasta</reference>
+    <outputDir>/proj/sllstore2017073/private/BirdsOfParadise/lycPyr_TheGenome/6.TheGenome/2.GapFilling/Intermediate/lycPyr5.1</outputDir>
+    <cluster>
+        <command notes="For single node, multi-core machines" >${CMD} ${JOBNAME} 2> ${STDERR} 1> ${STDOUT} &amp;</command>
+        <command notes="For PBS/Moab">echo '${CMD}' | msub -N "${JOBNAME}" -o ${STDOUT} -e ${STDERR} -l nodes=1:ppn=8,mem=48000mb</command>
+        <nJobs>1</nJobs>
+    </cluster>
+    <blasr>--minMatch 8 --sdpTupleSize 8 --minPctIdentity 75 --bestn 1 --nCandidates 10 --maxScore -500 --nproc 8 --noSplitSubreads</blasr>
+    <input baseDir="/proj/sllstore2017073/private/BirdsOfParadise/lycPyr_PacBio/subreads">
+        <job>lycPyr_filtered_subreads_01.fastq</job>
+        <job>lycPyr_filtered_subreads_02.fastq</job>
+        <job>lycPyr_filtered_subreads_03.fastq</job>
+        <job>lycPyr_filtered_subreads_04.fastq</job>
+        <job>lycPyr_filtered_subreads_05.fastq</job>
+        <job>lycPyr_filtered_subreads_06.fastq</job>
+        <job>lycPyr_filtered_subreads_07.fastq</job>
+        <job>lycPyr_filtered_subreads_08.fastq</job>
+        <job>lycPyr_filtered_subreads_09.fastq</job>
+        <job>lycPyr_filtered_subreads_10.fastq</job>
+        <job>lycPyr_filtered_subreads_11.fastq</job>
+        <job>lycPyr_filtered_subreads_12.fastq</job>
+        <job>lycPyr_filtered_subreads_13.fastq</job>
+        <job>lycPyr_filtered_subreads_14.fastq</job>
+        <job>lycPyr_filtered_subreads_15.fastq</job>
+        <job>lycPyr_filtered_subreads_16.fastq</job>
+        <job>lycPyr_filtered_subreads_17.fastq</job>
+        <job>lycPyr_filtered_subreads_18.fastq</job>
+        <job>lycPyr_filtered_subreads_19.fastq</job>
+        <job>lycPyr_filtered_subreads_20.fastq</job>
+    </input>
+</jellyProtocol>
