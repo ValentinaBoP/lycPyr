@@ -1,0 +1,104 @@
+# PLOT COVERAGE on scaffolds and highlight position of MHC
+
+# STEP 1: calculate coverage for each contigs in the scaffolds harboring MHC loci
+# bed file with contig coordinates (as done for sex chromosomes)
+
+ml bioinfo-tools BEDTools samtools
+
+cd /proj/uppstore2018073/private/Valentina/lycPyr/Intermediate/Minimap/MHC
+
+# annotate gaps and then contigs
+# get list of scaffolds/contigs with MHC
+cat lycPyr7.4_ex2.bed lycPyr7.4_ex3.bed | cut -f1 | sort -u > MHC_scaffolds.list
+# extract fasta
+perl /proj/sllstore2017073/private/scripts/extractFromFasta.pl /proj/sllstore2017073/private/BirdReferences/lycPyr7.4.fasta list MHC_scaffolds.list > MHC_scaffolds.fasta
+# annotate gaps
+python /proj/sllstore2017073/private/scripts/annotateGaps.py MHC_scaffolds.fasta >> MHC_scaffolds.gaps
+# annotate contigs
+samtools faidx MHC_scaffolds.fasta > MHC_scaffolds.fasta.fai
+bedtools complement -i MHC_scaffolds.gaps -g MHC_scaffolds.fasta.fai  > MHC_scaffolds.contigs
+
+
+#!/bin/bash -l
+#SBATCH -J COVERAGE_MHC
+#SBATCH -o COVERAGE_MHC.output
+#SBATCH -e COVERAGE_MHC.error
+#SBATCH --mail-user valentina.peona90@gmail.com
+#SBATCH --mail-type=ALL                           
+#SBATCH -t 2:00:00                           
+#SBATCH -A snic2020-15-57
+#SBATCH -p core
+#SBATCH -n 1
+
+ml bioinfo-tools samtools
+
+cd /proj/uppstore2018073/private/Valentina/lycPyr/Intermediate/Minimap/
+BAM=lycPyr7.4_minimap2.sorted
+
+samtools index -b $BAM.bam $BAM.bai
+CONTIGS=MHC_scaffolds.contigs
+
+cd ./MHC
+
+ln -s /proj/uppstore2018073/private/Valentina/lycPyr/Intermediate/Minimap/$BAM.bam .
+ln -s /proj/uppstore2018073/private/Valentina/lycPyr/Intermediate/Minimap/$BAM.bai .
+
+awk '{print $1":"$2"-"$3}' $CONTIGS > MHC_scaffolds.regions
+
+for line in $( cat MHC_scaffolds.regions )
+do
+samtools coverage -r $line -Q 30 $BAM.bam | grep -v "#" >> MHC_scaffolds.coverage.out
+done
+
+
+# STEP 3 find the positions contigs with MHC
+awk '{print $0, "ex2"}' OFS="\t" lycPyr7.4_ex2.bed > temp
+mv temp lycPyr7.4_ex2.bed 
+awk '{print $0, "ex3"}' OFS="\t" lycPyr7.4_ex3.bed > temp
+mv temp lycPyr7.4_ex3.bed
+cat lycPyr7.4_ex2.bed lycPyr7.4_ex3.bed | bedtools sort -i stdin > MHC_coordinates.bed
+
+bedtools intersect -a MHC_scaffolds.contigs -b MHC_coordinates.bed -u > MHC_coordinates.overlap.bed
+
+# STEP 4 plot
+
+library(ggplot2)
+
+# get length of the chromosomes for the plot
+index = read.table("MHC_scaffolds.fasta.fai", stringsAsFactors = F, sep = "\t")
+
+# coordinates of the contigs for the plot - maybe not necessary - info also in the coverage tables
+#contigs = read.table("MHC_scaffolds.contigs", stringsAsFactors = F, sep = "\t")
+
+# the 3rd last column is the mean read depth
+coverage = read.table("MHC_scaffolds.coverage.out", stringsAsFactors = F, sep = "\t")
+
+# for plotting reasons we need one middle point for each contig
+coverage$xcoord = (coverage$V2 + coverage$V3) / 2
+
+# intersect bed file with contigs containing MHC loci
+intersect = read.table("MHC_coordinates.overlap.bed", stringsAsFactors = F, sep = "\t")
+
+# flag the contigs in coverage table with MHC loci
+coverage$mhc = "empty"
+for(i in 1:nrow(intersect)){
+
+ coverage$mhc[coverage$V1 == intersect$V1[i] & coverage$V2 == intersect$V2[i]] = "mhc"
+
+}
+
+boo = coverage$V7 > 100
+coverage$V7[boo] = -2
+
+#plot
+
+for(scaffold in index$V1){
+
+  plot = ggplot() + geom_rect(data = index[index$V1 == scaffold,], aes(xmin = 0, xmax = V2, ymin = -3, ymax = -1)) + geom_point(data = coverage[coverage$V1 == scaffold,], aes(x = xcoord, y = V7, color = mhc)) + scale_colour_manual(values = c("dark grey", "black")) + theme_bw() + xlab(scaffold) + ylab("Coverage") + theme(legend.position = "none")
+
+  filename = paste("Supplementary_Figure_MHC_coverage_", scaffold, ".pdf", sep = "")
+
+  ggsave(filename = filename, plot = plot, device = "pdf", scale = 0.5, width = 30, height = 30, units = "cm", dpi = 300, limitsize = FALSE)
+
+}
+
